@@ -1,0 +1,40 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "types": [
+      "react",
+      "node",
+      "jest"
+    ],
+    "paths": {
+      "@assets/*": [
+        "./src/assets/*"
+      ],
+      "@copy/*": [
+        "./src/copy/*"
+      ],
+      "@core-components/*": [
+        "./src/core-components/*"
+      ],
+      "@global-components/*": [
+        "./src/global-components/*"
+      ],
+      "@styles/*": [
+        "./src/styles/*"
+      ],
+      "@utils/*": [
+        "./src/utils/*"
+      ]
+    }
+  },
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx"
+  ],
+  "exclude": [
+    "src/server",
+    "dist",
+    "node_modules"
+  ]
+}

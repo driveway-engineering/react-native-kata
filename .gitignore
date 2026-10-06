@@ -1,0 +1,14 @@
+node_modules/
+.expo/
+dist/
+coverage/
+.env*
+!.env.example
+.idea/
+.DS_Store
+npm-debug.log*
+*.tsbuildinfo
+.metro-health-check*
+/ios/
+/android/
+expo-env.d.ts
