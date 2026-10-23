@@ -1,0 +1,24 @@
+# Navigates to the services list and recovers from the API's intentional 500s.
+appId: host.exp.Exponent
+---
+- tapOn:
+    id: "get-started-button"
+- assertVisible: "Select a Service"
+- extendedWaitUntil:
+    notVisible:
+      id: "loading-state"
+    timeout: 30000
+- repeat:
+    times: 5
+    while:
+      visible: "Try again"
+    commands:
+      - tapOn: "Try again"
+      - extendedWaitUntil:
+          notVisible:
+            id: "loading-state"
+          timeout: 30000
+- extendedWaitUntil:
+    visible:
+      id: "service-toggle-.*"
+    timeout: 30000
