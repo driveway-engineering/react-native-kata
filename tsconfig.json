@@ -20,6 +20,9 @@
       "@global-components/*": [
         "./src/global-components/*"
       ],
+      "@hooks/*": [
+        "./src/hooks/*"
+      ],
       "@styles/*": [
         "./src/styles/*"
       ],

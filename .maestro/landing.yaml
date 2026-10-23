@@ -1,0 +1,16 @@
+appId: host.exp.Exponent
+name: Landing page shows logo, copy and support contacts
+env:
+  EXPO_URL: exp://127.0.0.1:8081
+tags:
+  - smoke
+---
+- runFlow: subflows/launch-app.yaml
+- assertVisible: "Welcome to Lithia & Driveway Service!"
+- assertVisible:
+    id: "landing-logo"
+- assertVisible: ".*full control of your car-owning experience.*"
+- scrollUntilVisible:
+    element: "555-872-3289"
+- assertVisible: "supportbutton@driveway.com"
+- assertVisible: "555-872-3289"

@@ -1,0 +1,35 @@
+appId: host.exp.Exponent
+name: Booking form validates input before calling the API
+env:
+  EXPO_URL: exp://127.0.0.1:8081
+---
+- runFlow: subflows/launch-app.yaml
+- runFlow: subflows/open-services.yaml
+- runFlow: subflows/open-booking-form.yaml
+
+- scrollUntilVisible:
+    element:
+      id: "submit-booking-button"
+- tapOn:
+    id: "submit-booking-button"
+- assertNotVisible: "You're booked!"
+- scrollUntilVisible:
+    element: "Enter your name."
+    direction: UP
+- assertVisible: "Enter your name."
+- assertVisible: "Enter your email address."
+
+- tapOn:
+    id: "input-email"
+- inputText: "not-an-email"
+- hideKeyboard
+- assertVisible: "Enter a valid email address, like jane@example.com."
+
+# Back returns to the service list without booking.
+- scrollUntilVisible:
+    element:
+      id: "back-button"
+    direction: UP
+- tapOn:
+    id: "back-button"
+- assertVisible: "Select a Service"

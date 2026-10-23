@@ -21,4 +21,18 @@ describe("Button", () => {
     fireEvent.press(button);
     expect(onPress).not.toHaveBeenCalled();
   });
+
+  it("is busy and blocks presses while loading", () => {
+    const onPress = jest.fn();
+    render(
+      <Button loading onPress={onPress}>
+        Submit
+      </Button>,
+    );
+    const button = screen.getByRole("button", { name: "Submit" });
+    expect(button).toBeBusy();
+    expect(button).toBeDisabled();
+    fireEvent.press(button);
+    expect(onPress).not.toHaveBeenCalled();
+  });
 });
