@@ -13,6 +13,7 @@ The starter is deliberately incomplete. It displays a welcome heading and suppli
 - [API reference](#api-reference)
 - [Troubleshooting](#troubleshooting)
 - [Submission and interview](#submission-and-interview)
+- [Solution overview](#solution-overview)
 
 ## Quick start
 
@@ -159,6 +160,7 @@ Run all commands from `react-native-kata`.
 | `npm run lint` | Run Expo's ESLint configuration on the mobile starter. |
 | `npm run typecheck` | Check mobile TypeScript without emitting files. |
 | `npm run typecheck:server` | Check server TypeScript separately. |
+| `npm run e2e` | Run the Maestro end-to-end flows (see [End-to-end tests](#end-to-end-tests-maestro)). |
 
 The API honors `SERVERPORT` if you need a different port. Update the URL's port too. Do not stop unrelated processes to free the default port.
 
@@ -282,3 +284,91 @@ Use trusted network/certificate configuration if your machine needs it; do not d
 Work in your personal fork and push your code **at least 24 hours before the interview** so it can be reviewed.
 
 Be prepared to discuss your implementation, testing, priorities, and trade-offs. The interview includes a live-coding enhancement to your solution.
+
+## Solution overview
+
+### Booking journey
+
+| Route | Feature component | What it does |
+| --- | --- | --- |
+| `/` | `LandingPage` | Logo, intro copy, **Get Started**, and tappable support email (`mailto:`) and phone (`tel:`) links. |
+| `/services` | `ServicesPage` → `ServiceCard` | Lists only services with bookable slots in the next 14 days. Each card expands (accordion, as in the wireframe) to show sorted slots as radio options, with **Book Now**. Supports pull to refresh. |
+| `/booking` | `BookingPage` → `AppointmentSummary`, `BookingForm` | Shows the chosen slot and collects name, email, and vehicle year/make/model. |
+| `/confirmation` | `ConfirmationPage` | Shows the details **returned by the API**, then **Done** (home) or **Book another appointment**. |
+
+### Structure
+
+The solution follows the starter's layout, with one folder per component (`Component.tsx`, `Component.styles.ts`, `Component.test.tsx`, `index.ts`):
+
+| Location | Contents |
+| --- | --- |
+| `src/app/` | Thin route files. They read route params and wire navigation callbacks into feature components; they hold no UI logic. |
+| `src/core-components/` | App-wide building blocks: `Button` (primary/secondary, loading), `Typography`, `Screen` (safe area + keyboard + scroll), `ScreenHeader`, `TextField`, `RadioOption`, `TextLink`, `Card`, `DetailRow`, `LoadingState`, `StateMessage`, `InlineNotice`. Screens never style raw React Native primitives directly, so changing one of these components restyles the whole app. |
+| `src/global-components/` | Feature components (pages, `ServiceCard`, `BookingForm`, `AppointmentSummary`). They take callbacks such as `onBookSlot` instead of calling the router, which keeps them easy to test. |
+| `src/hooks/` | `useServiceAvailability`, `useBookAppointment` (React Query) and `useBookingForm` (form state + validation). |
+| `src/utils/` | The API layer (`api.ts` base URL, `apiClient.ts` fetch wrapper, `services.ts`, `appointments.ts`, `types.ts`, `queryClient.ts`, `queryKeys.ts`) plus pure helpers (`availability.ts`, `format.ts`, `bookingValidation.ts`, `routeParams.ts`). |
+| `src/copy/`, `src/styles/` | All user-facing strings, and color/spacing tokens. |
+
+### Key decisions
+
+- **Availability**: `/services` only returns definitions. Each service's `/appointments/:serviceId` is fetched in parallel, and `getUpcomingSlots` drops booked, past, and beyond-14-day slots, then sorts by start time.
+- **Resilience**: `apiClient` checks the status before decoding JSON, reads the API's plain-text errors, applies a 15s timeout, and turns network failures into readable messages.
+  - React Query retries failed reads twice (but never 4xx responses), which absorbs most of the intentional 20% failures without the user noticing.
+  - If a service still fails, the services that did load stay usable and an inline notice offers **Try again**, which re-requests only the failed services. Total failure shows a full error with retry.
+- **Bookings are never retried automatically.** Navigation to the confirmation happens only in the mutation's `onSuccess`, so a failed booking cannot show a confirmation.
+  - Errors appear inline and keep the form values, so the user can retry with one tap.
+  - The `already booked` error offers **Choose another time**.
+  - Cached availability is invalidated after every booking attempt.
+- **Navigation data** goes through string route params (`utils/routeParams.ts`) instead of global state, so screens survive reloads and handle missing data gracefully. Booking → confirmation uses `router.replace`, so going back cannot re-show a submitted form.
+- **Validation**: client-side checks for required fields, a simple email pattern, and a 4-digit year between 1900 and next year. Errors appear after the first submit and then update live as the user types.
+- **Phone usability**:
+  - Layout: safe areas, a `KeyboardAvoidingView` + `ScrollView` shell, `keyboardShouldPersistTaps`, 44–48pt touch targets.
+  - Keyboard: correct keyboard types and autofill hints, and "next" moves through the fields.
+  - Accessibility: roles and states for screen readers (`header`, `radio` + `checked`, `button` + `expanded`/`busy`, `alert`, `link`, `progressbar`), plus labelled inputs whose errors are announced.
+- **Motion**: subtle animations built with the starter's `react-native-reanimated` (no new dependency). All presets live in `src/styles/animations.ts` and respect the OS "Reduce Motion" setting.
+  - Content enters in a staggered order.
+  - Service cards expand and collapse with layout transitions and a rotating caret.
+  - Buttons scale slightly when pressed.
+  - Errors and status messages fade in.
+  - The confirmation badge springs in.
+- **Libraries**: only `@tanstack/react-query` was added (pure JS, Expo Go compatible). The form is small enough that a form library would be overbuilding.
+- **Brake Inspection** has no supplied icon, so it uses the tire icon as the closest match.
+
+### Unit and integration tests (Jest + React Native Testing Library)
+
+`npm test` runs 97 tests without a running API:
+
+- **Pure logic**: availability filtering and sorting, duration/date formatting, form validation, and route param round-trips.
+- **API client**: status handling, plain-text errors, network/JSON failures, missing configuration, and the request shape for bookings. It also checks the retry policy (5xx retried, 4xx and bookings not).
+- **Core components**: accessibility roles and states, disabled/loading buttons, link opening, field errors.
+- **Feature integration**: `ServicesPage` and `BookingPage` render with a real React Query client, the real API client, and a mocked `fetch`. These cover:
+  - only bookable services listed, slots sorted, booking a chosen slot
+  - empty state
+  - full failure with recovery, and partial failure retrying only the failed service
+  - successful booking returning the API confirmation
+  - invalid forms never calling the API
+  - API errors never confirming, then retrying successfully
+  - the slot-taken recovery path
+
+### End-to-end tests (Maestro)
+
+The flows in `.maestro/` drive the app inside Expo Go against the real mock API:
+
+| Flow | Covers |
+| --- | --- |
+| `landing.yaml` | Logo, copy, and support contacts. |
+| `book-appointment.yaml` | Full journey: services (automatically tapping **Try again** on intentional 500s) → slot → form → confirmation details → back home. |
+| `booking-validation.yaml` | Empty and invalid submissions show errors and never confirm; back returns to services. |
+
+To run them:
+
+1. Install the [Maestro CLI](https://docs.maestro.dev/getting-started/installing-maestro).
+2. Start `npm run server` and `npm run ios` (or `npm run android`) so Expo Go is installed and Metro is running.
+3. Run:
+
+```sh
+npm run e2e                                            # iOS Simulator (exp://127.0.0.1:8081)
+maestro test -e EXPO_URL=exp://10.0.2.2:8081 .maestro  # Android Emulator
+```
+
+The flows select elements by `testID`, so copy changes don't break them.

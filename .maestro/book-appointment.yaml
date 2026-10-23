@@ -1,0 +1,52 @@
+appId: host.exp.Exponent
+name: User books an appointment and sees the API confirmation
+env:
+  EXPO_URL: exp://127.0.0.1:8081
+tags:
+  - smoke
+---
+- runFlow: subflows/launch-app.yaml
+- runFlow: subflows/open-services.yaml
+- runFlow: subflows/open-booking-form.yaml
+
+- tapOn:
+    id: "input-customer-name"
+- inputText: "Maestro Tester"
+- tapOn:
+    id: "input-email"
+- inputText: "maestro@example.com"
+- tapOn:
+    id: "input-model-year"
+- inputText: "2021"
+- scrollUntilVisible:
+    element:
+      id: "input-make"
+- tapOn:
+    id: "input-make"
+- inputText: "Toyota"
+- scrollUntilVisible:
+    element:
+      id: "input-model"
+- tapOn:
+    id: "input-model"
+- inputText: "Corolla"
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "submit-booking-button"
+- tapOn:
+    id: "submit-booking-button"
+
+- extendedWaitUntil:
+    visible: "You're booked!"
+    timeout: 15000
+- assertVisible: ".*Maestro Tester.*"
+- assertVisible: ".*maestro@example.com.*"
+- assertVisible: ".*2021 Toyota Corolla.*"
+- scrollUntilVisible:
+    element:
+      id: "confirmation-done-button"
+- tapOn:
+    id: "confirmation-done-button"
+- assertVisible:
+    id: "get-started-button"

@@ -1,0 +1,18 @@
+# Opens the project in Expo Go and waits for the landing page.
+# EXPO_URL is the Metro URL printed by `npm start`
+# (iOS Simulator: exp://127.0.0.1:8081, Android Emulator: exp://10.0.2.2:8081).
+appId: host.exp.Exponent
+---
+- launchApp:
+    stopApp: true
+- openLink: ${EXPO_URL}
+# Expo Go shows a one-time developer menu introduction.
+- runFlow:
+    when:
+      visible: "Continue"
+    commands:
+      - tapOn: "Continue"
+- extendedWaitUntil:
+    visible:
+      id: "get-started-button"
+    timeout: 120000

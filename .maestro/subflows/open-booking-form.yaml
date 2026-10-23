@@ -1,0 +1,14 @@
+# Expands the first available service, picks its earliest slot and opens the form.
+appId: host.exp.Exponent
+---
+- tapOn:
+    id: "service-toggle-.*"
+    index: 0
+- tapOn:
+    id: "slot-option-0"
+- scrollUntilVisible:
+    element:
+      id: "book-now-button"
+- tapOn:
+    id: "book-now-button"
+- assertVisible: "Book Your Appointment"

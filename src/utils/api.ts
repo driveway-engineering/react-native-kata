@@ -1,9 +1,11 @@
-
-const value = process.env.EXPO_PUBLIC_API_URL?.trim();
 const message =
   "Set EXPO_PUBLIC_API_URL in .env.local to an absolute http:// or https:// API URL reachable from your device.";
 
 export const getApiBaseUrl = (): string => {
+  // Read on every call so configuration changes (and tests) are honoured.
+  // Expo still inlines this reference at build time.
+  const value = process.env.EXPO_PUBLIC_API_URL?.trim();
+
   if (!value || !URL.canParse(value)) {
     throw new Error(message);
   }
